@@ -35,15 +35,7 @@ class TaskCard extends StatelessWidget {
             color: task.status == TaskStatus.done ? const Color(0xFF8B5CF6) : const Color(0xFFD1D1E0),
             size: 28,
           ),
-          title: Text(
-            task.title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: const Color(0xFF1E1E2D),
-              decoration: task.status == TaskStatus.done ? TextDecoration.lineThrough : null,
-            ),
-          ),
+          title: _buildHighlightedTitle(task.title, searchQuery),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4.0),
             child: Row(
@@ -70,6 +62,62 @@ class TaskCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildHighlightedTitle(String title, String query) {
+    final isDone = task.status == TaskStatus.done;
+    if (query.isEmpty) {
+      return Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          color: const Color(0xFF1E1E2D),
+          decoration: isDone ? TextDecoration.lineThrough : null,
+        ),
+      );
+    }
+    final lowerTitle = title.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <TextSpan>[];
+    int start = 0;
+    int index;
+    while ((index = lowerTitle.indexOf(lowerQuery, start)) != -1) {
+      if (index > start) {
+        spans.add(TextSpan(
+          text: title.substring(start, index),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: const Color(0xFF1E1E2D),
+            decoration: isDone ? TextDecoration.lineThrough : null,
+          ),
+        ));
+      }
+      spans.add(TextSpan(
+        text: title.substring(index, index + query.length),
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: 16,
+          color: const Color(0xFF8B5CF6),
+          backgroundColor: const Color(0xFFEDE9FE),
+          decoration: isDone ? TextDecoration.lineThrough : null,
+        ),
+      ));
+      start = index + query.length;
+    }
+    if (start < title.length) {
+      spans.add(TextSpan(
+        text: title.substring(start),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          color: const Color(0xFF1E1E2D),
+          decoration: isDone ? TextDecoration.lineThrough : null,
+        ),
+      ));
+    }
+    return RichText(text: TextSpan(children: spans));
   }
 
   String _formatDate(DateTime date) {

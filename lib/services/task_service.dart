@@ -25,6 +25,8 @@ class TaskService {
   }
 
   Future<void> saveTask(Task task) async {
+    // Simulate a 2-second network/processing delay (required by assignment)
+    await Future.delayed(const Duration(seconds: 2));
     final box = Hive.box<Task>(_boxName);
     if (task.id == null) {
       // New task

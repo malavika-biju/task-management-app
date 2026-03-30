@@ -92,6 +92,7 @@ class TaskState extends Equatable {
 // Bloc
 class TaskBloc extends Bloc<TaskEvent, TaskState> {
   final TaskService _taskService;
+  Timer? _debounceTimer;
 
   TaskBloc(this._taskService) : super(const TaskState()) {
     on<LoadTasks>(_onLoadTasks);
@@ -100,6 +101,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     on<DeleteTask>(_onDeleteTask);
     on<SearchTasks>(_onSearchTasks);
     on<FilterTasks>(_onFilterTasks);
+  }
+
+  @override
+  Future<void> close() {
+    _debounceTimer?.cancel();
+    return super.close();
   }
 
   Future<void> _onLoadTasks(LoadTasks event, Emitter<TaskState> emit) async {
@@ -146,7 +153,10 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   }
 
   void _onSearchTasks(SearchTasks event, Emitter<TaskState> emit) {
-    emit(state.copyWith(searchQuery: event.query));
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!isClosed) emit(state.copyWith(searchQuery: event.query));
+    });
   }
 
   void _onFilterTasks(FilterTasks event, Emitter<TaskState> emit) {

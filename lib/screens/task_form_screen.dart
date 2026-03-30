@@ -21,6 +21,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   DateTime? _dueDate;
   TaskStatus _status = TaskStatus.toDo;
   int? _blockedById;
+  bool _wasSaving = false;
 
   @override
   void initState() {
@@ -35,8 +36,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       text: task?.description ?? (task == null ? draft.description : ''),
     );
     _dueDate = task?.dueDate ?? (task == null ? draft.dueDate : null);
-    _status = task?.status ?? (task == null && draft.statusIndex != null 
-        ? TaskStatus.values[draft.statusIndex!] 
+    _status = task?.status ?? (task == null && draft.statusIndex != null
+        ? TaskStatus.values[draft.statusIndex!]
         : TaskStatus.toDo);
     _blockedById = task?.blockedById ?? (task == null ? draft.blockedById : null);
 
@@ -67,20 +68,30 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.task != null;
-    final tasks = context.read<TaskBloc>().state.tasks;
-    final availableBlockers = tasks.where((t) => t.id != widget.task?.id).toList();
 
     return BlocConsumer<TaskBloc, TaskState>(
       listener: (context, state) {
-        if (!state.isProcessing && state.status == TaskStatusState.success) {
-          // Check if we were actually saving (isProcessing was true in previous state)
-          // For simplicity in this demo, we'll just show success and let the user pop or auto-pop
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Task saved successfully!'), backgroundColor: Colors.green),
-           );
+        // Auto-pop when processing finishes successfully after a save was triggered
+        if (_wasSaving && !state.isProcessing && state.status == TaskStatusState.success) {
+          _wasSaving = false;
+          if (widget.task == null) {
+            context.read<DraftCubit>().clearDraft();
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Task saved successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.pop(context);
         }
       },
       builder: (context, state) {
+        final availableBlockers = state.tasks
+            .where((t) => t.id != widget.task?.id)
+            .toList();
+
         return Scaffold(
           backgroundColor: Colors.white,
           appBar: AppBar(
@@ -100,7 +111,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                   controller: _titleController,
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   decoration: _inputDecoration('Design Web Dashboard', Icons.title),
-                  validator: (value) => value == null || value.isEmpty ? 'Title is required' : null,
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Title is required' : null,
                 ),
                 const SizedBox(height: 24),
                 _buildFieldLabel('DESCRIPTION'),
@@ -108,8 +120,10 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                 TextFormField(
                   controller: _descriptionController,
                   maxLines: 3,
-                  decoration: _inputDecoration('Details about the task...', Icons.description_outlined),
-                  validator: (value) => value == null || value.isEmpty ? 'Description is required' : null,
+                  decoration: _inputDecoration(
+                      'Details about the task...', Icons.description_outlined),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Description is required' : null,
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -127,10 +141,13 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                               decoration: _containerDecoration(),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, size: 18, color: Color(0xFF8B5CF6)),
+                                  const Icon(Icons.calendar_today,
+                                      size: 18, color: Color(0xFF8B5CF6)),
                                   const SizedBox(width: 12),
                                   Text(
-                                    _dueDate == null ? 'Select Date' : DateFormat('MMM dd, yyyy').format(_dueDate!),
+                                    _dueDate == null
+                                        ? 'Select Date'
+                                        : DateFormat('MMM dd, yyyy').format(_dueDate!),
                                     style: const TextStyle(fontWeight: FontWeight.w500),
                                   ),
                                 ],
@@ -152,7 +169,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                             dropdownColor: Colors.white,
                             decoration: _inputDecoration('', null),
                             items: TaskStatus.values
-                                .map((s) => DropdownMenuItem(value: s, child: Text(s.displayName)))
+                                .map((s) => DropdownMenuItem(
+                                    value: s, child: Text(s.displayName)))
                                 .toList(),
                             onChanged: (val) => setState(() => _status = val!),
                           ),
@@ -161,19 +179,54 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 24),
+                _buildFieldLabel('BLOCKED BY (OPTIONAL)'),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<int?>(
+                  value: _blockedById,
+                  dropdownColor: Colors.white,
+                  decoration: _inputDecoration('No dependency', Icons.lock_clock_outlined),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...availableBlockers.map(
+                      (t) => DropdownMenuItem<int?>(
+                        value: t.id,
+                        child: Text(
+                          t.title,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    setState(() => _blockedById = val);
+                    if (widget.task == null) _updateDraft();
+                  },
+                ),
                 const SizedBox(height: 40),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF8B5CF6),
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 60),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
                   onPressed: state.isProcessing ? null : _save,
-                  child: state.isProcessing 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(isEdit ? 'Update Task' : 'Create Task', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: state.isProcessing
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : Text(isEdit ? 'Update Task' : 'Create Task',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -198,11 +251,15 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   InputDecoration _inputDecoration(String hint, IconData? icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.normal, fontSize: 16),
-      prefixIcon: icon != null ? Icon(icon, color: const Color(0xFF8B5CF6), size: 20) : null,
+      hintStyle: TextStyle(
+          color: Colors.grey[400], fontWeight: FontWeight.normal, fontSize: 16),
+      prefixIcon: icon != null
+          ? Icon(icon, color: const Color(0xFF8B5CF6), size: 20)
+          : null,
       filled: true,
       fillColor: const Color(0xFFF8F7FF),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
     );
   }
 
@@ -220,11 +277,15 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (picked != null) setState(() => _dueDate = picked);
+    if (picked != null) {
+      setState(() => _dueDate = picked);
+      if (widget.task == null) _updateDraft();
+    }
   }
 
   void _save() {
     if (_formKey.currentState!.validate() && _dueDate != null) {
+      _wasSaving = true;
       final taskToSave = Task(
         title: _titleController.text,
         description: _descriptionController.text,
@@ -238,15 +299,10 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
         context.read<TaskBloc>().add(UpdateTask(taskToSave));
       } else {
         context.read<TaskBloc>().add(AddTask(taskToSave));
-        context.read<DraftCubit>().clearDraft();
       }
-
-      // Auto-pop after a short delay
-       Future.delayed(const Duration(seconds: 2, milliseconds: 500), () {
-        if (mounted) Navigator.pop(context);
-      });
     } else if (_dueDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a due date')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a due date')));
     }
   }
 }

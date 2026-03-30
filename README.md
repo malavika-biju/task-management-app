@@ -1,58 +1,70 @@
-# Task Management App - Flodo AI Assignment
+# Task Management App — Flodo AI Assignment
 
-A functional, visually polished Task Management Flutter app built with **Track B: The Mobile Specialist**.
+A functional, visually polished Task Management Flutter app.
+
+## Track & Stretch Goal
+
+- **Track B: The Mobile Specialist** — Flutter + Hive local database, no backend.
+- **Stretch Goal: Debounced Autocomplete Search** — 300ms debounce on search with highlighted matching text in task titles.
 
 ## Features
 
-- **Core CRUD**: Create, Read, Update, and Delete tasks.
-- **Isar Database**: High-performance local persistence.
-- **Task Blocking**: Visual "greyed out" state for tasks blocked by incomplete dependencies.
-- **Persistent Drafts**: Unsaved task data is preserved across app sessions.
-- **Debounced Search**: Optimized search with a 300ms debounce to improve performance.
-- **Text Highlighting**: (Stretch Goal) Matching search terms are highlighted in task titles.
-- **2-Second Delay**: Simulated latency on Create/Update with clear loading states and double-tap prevention.
-- **Status Filtering**: Easily filter tasks by Done, In Progress, or To-Do.
-- **Premium UI**: Modern aesthetics using Google Fonts (Outfit), subtle gradients, and clean card designs.
-
-## Technical Choices
-
-- **State Management**: `flutter_bloc` for predictable state changes and clean separation of concerns.
-- **Local Storage**: `Isar` for the main data model and `SharedPreferences` for quick draft persistence.
-- **Architecture**: Service/Repository pattern to decouple UI from data logic.
-- **Debouncing**: Implemented using `rxdart` operators in the Bloc layer.
+- **Full CRUD**: Create, Read, Update, and Delete tasks.
+- **All 5 Task Fields**: Title, Description, Due Date, Status (To-Do / In Progress / Done), Blocked By.
+- **Task Blocking**: If Task B is blocked by Task A, Task B's card is visually greyed out with a 🔒 icon until Task A is marked Done.
+- **Persistent Drafts**: If you start typing a new task and swipe back, your text is restored when you reopen the form (via SharedPreferences).
+- **Debounced Search**: 300ms debounce fires after the user stops typing; matching text is highlighted in purple within the task title.
+- **Status Filter**: Dropdown on the main screen to filter tasks by All / To-Do / In Progress / Done.
+- **2-Second Simulated Delay**: All Create and Update operations include a 2-second async delay. The UI shows a loading spinner and the Save button is disabled during this time.
+- **Premium UI**: Google Fonts (Outfit), purple gradient hero card, smooth layouts.
 
 ## Setup Instructions
 
-1.  **Environment**: The Flutter SDK was found at `C:\Users\malum\flutter`.
-2.  **Initialize Boilerplate**:
-    ```powershell
-    C:\Users\malum\flutter\bin\flutter.bat create .
-    ```
-3.  **Install Dependencies**:
-    ```powershell
-    C:\Users\malum\flutter\bin\flutter.bat pub get
-    ```
-4.  **Codegen (Isar)**:
-    ```powershell
-    C:\Users\malum\flutter\bin\dart.bat run build_runner build --delete-conflicting-outputs
-    ```
-5.  **Run the App**:
-    ```powershell
-    C:\Users\malum\flutter\bin\flutter.bat run
-    ```
+1. **Prerequisites**: Install Flutter SDK ([flutter.dev](https://flutter.dev/docs/get-started/install)).
+
+2. **Clone the repository**:
+   ```bash
+   git clone https://github.com/malavika-biju/task-management-app.git
+   cd task-management-app
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   flutter pub get
+   ```
+
+4. **Generate Hive adapters** (if regenerating):
+   ```bash
+   dart run build_runner build --delete-conflicting-outputs
+   ```
+
+5. **Run the app**:
+   ```bash
+   flutter run
+   ```
+
+> The app runs on Windows, Android, iOS, and Web. Tested on Windows desktop.
+
+## Technical Decisions
+
+| Concern | Choice | Why |
+|---|---|---|
+| State Management | `flutter_bloc` | Predictable state, clean separation of UI and logic |
+| Local Storage | `hive_flutter` | Fast, typed NoSQL; perfect for task objects |
+| Draft Persistence | `shared_preferences` | Lightweight key-value; ideal for ephemeral form state |
+| Architecture | Service/BLoC pattern | Decouples UI from data logic |
+| Debounce | `dart:async` `Timer` | No extra dependency; cancels previous timer on each keystroke |
 
 ## AI Usage Report
 
-### Prompts Used
-- "Design a premium Flutter task card with a status chip and visual indication for blocked tasks."
-- "Implement a debounced search logic in a Flutter Bloc that also handles text highlighting in the UI."
-- "How to persist form drafts in Flutter using Cubit and SharedPreferences?"
+### Prompts That Were Most Helpful
+- *"Design a premium Flutter task card with a greyed-out blocked state and a lock icon, no external packages."*
+- *"How do I implement 300ms debounced search in a Flutter BLoC using only dart:async Timer, and cancel it properly when the bloc is closed?"*
+- *"Implement a BlocListener-based auto-pop after an async save operation, replacing a raw Future.delayed timer."*
+- *"RichText widget in Flutter to highlight matching substrings case-insensitively with a purple background."*
 
-### Helpful Code
-The AI was particularly helpful in setting up the `rxdart` debounce transformer for the Search event and providing the logic for the RichText highlighting.
-
-### Challenges/Fixes
-The AI initially suggested using `Hive` for all data, but I opted for `Isar` as it's more structured for relational-like data (Blocked By field). I had to manually adjust the blocking logic to ensure it correctly checks the status of the blocker task in the global list.
+### When AI Gave Wrong Code (and How I Fixed It)
+The AI initially generated the debounce using `rxdart`'s `debounceTime` transformer — which works, but adds an extra dependency. I asked it to rewrite using only `dart:async Timer`, keeping the dependency count minimal. The AI also originally suggested calling `clearDraft()` inside `_save()` before the async operation completed, which caused a race condition where the draft cleared before the bloc finished. I fixed it by moving `clearDraft()` into the `BlocListener` after `isProcessing` transitions to false.
 
 ## Demo Video
-[Link to Google Drive Demo Video] (Placeholder - Please record as per guidelines)
+[Google Drive Demo Video Link] — *Please record and add link before submission*

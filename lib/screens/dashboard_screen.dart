@@ -163,24 +163,70 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildTaskHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'Your Tasks',
-          style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E1E2D)),
-        ),
-        TextButton.icon(
-          onPressed: () => context.read<TaskBloc>().add(LoadTasks()),
-          icon: const Icon(Icons.sync, size: 16),
-          label: const Text('Refresh',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          style: TextButton.styleFrom(foregroundColor: const Color(0xFF8B5CF6)),
-        ),
-      ],
+    return BlocBuilder<TaskBloc, TaskState>(
+      builder: (context, state) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Your Tasks',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E1E2D)),
+            ),
+            Row(
+              children: [
+                // Status filter dropdown
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFF1F1F5)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<TaskStatus?>(
+                      value: state.filterStatus,
+                      isDense: true,
+                      icon: const Icon(Icons.filter_list,
+                          size: 16, color: Color(0xFF8B5CF6)),
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1E1E2D),
+                          fontWeight: FontWeight.w600),
+                      items: [
+                        const DropdownMenuItem<TaskStatus?>(
+                          value: null,
+                          child: Text('All'),
+                        ),
+                        ...TaskStatus.values.map((s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s.displayName),
+                            )),
+                      ],
+                      onChanged: (val) =>
+                          context.read<TaskBloc>().add(FilterTasks(val)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () =>
+                      context.read<TaskBloc>().add(LoadTasks()),
+                  icon: const Icon(Icons.sync, size: 16),
+                  label: const Text('Refresh',
+                      style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF8B5CF6)),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
