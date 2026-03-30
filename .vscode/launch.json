@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Taskly (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "device": "chrome"
+        },
+        {
+            "name": "Taskly (Edge)",
+            "request": "launch",
+            "type": "dart",
+            "device": "edge"
+        },
+        {
+            "name": "Taskly (Release Mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

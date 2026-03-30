@@ -1,0 +1,15 @@
+{
+    "files.autoSave": "afterDelay",
+    "workbench.productIconTheme": "bongocat",
+    "claudeCode.preferredLocation": "panel",
+    "[dart]": {
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.rulers": [
+            80
+        ],
+        "editor.selectionHighlight": false,
+        "editor.tabCompletion": "onlySnippets",
+        "editor.wordBasedSuggestions": "off"
+    }
+}
